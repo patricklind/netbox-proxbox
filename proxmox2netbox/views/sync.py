@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import permission_required
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_POST
 
@@ -11,6 +11,7 @@ from proxmox2netbox.services.proxmox_sync import (
     sync_full_update as sync_full_update_service,
     sync_virtual_machines as sync_virtual_machines_service,
 )
+from proxmox2netbox.jobs import SCHEDULE_JOB_NAME, cancel_scheduled_sync_jobs
 
 
 class HtmxHttpRequest(HttpRequest):
@@ -35,7 +36,7 @@ def _run_sync(request: HtmxHttpRequest, template_name: str, partial_template_nam
 
 
 @permission_required("proxmox2netbox.change_proxmoxendpoint", raise_exception=True)
-@require_GET
+@require_POST
 def sync_devices(request: HtmxHttpRequest) -> HttpResponse:
     return _run_sync(
         request=request,
@@ -46,7 +47,7 @@ def sync_devices(request: HtmxHttpRequest) -> HttpResponse:
 
 
 @permission_required("proxmox2netbox.change_proxmoxendpoint", raise_exception=True)
-@require_GET
+@require_POST
 def sync_virtual_machines(request: HtmxHttpRequest) -> HttpResponse:
     return _run_sync(
         request=request,
@@ -57,7 +58,7 @@ def sync_virtual_machines(request: HtmxHttpRequest) -> HttpResponse:
 
 
 @permission_required("proxmox2netbox.change_proxmoxendpoint", raise_exception=True)
-@require_GET
+@require_POST
 def sync_full_update(request: HtmxHttpRequest) -> HttpResponse:
     return _run_sync(
         request=request,
@@ -66,8 +67,6 @@ def sync_full_update(request: HtmxHttpRequest) -> HttpResponse:
         sync_callable=sync_full_update_service,
     )
 
-
-SCHEDULE_JOB_NAME = 'Proxmox2NetBox Sync'
 
 INTERVAL_CHOICES = [
     (0, 'Disabled'),
@@ -106,14 +105,16 @@ def set_sync_schedule(request: HtmxHttpRequest) -> HttpResponse:
     from proxmox2netbox.jobs import Proxmox2NetBoxSyncJob
     from proxmox2netbox.choices import SyncTypeChoices
 
-    interval = int(request.POST.get('interval', 0))
+    try:
+        interval = int(request.POST.get('interval', 0))
+    except (TypeError, ValueError):
+        return HttpResponseBadRequest('Invalid sync interval.')
 
-    # Cancel existing scheduled jobs
-    Job.objects.filter(
-        name=SCHEDULE_JOB_NAME,
-        interval__isnull=False,
-        status__in=('pending', 'scheduled', 'running'),
-    ).delete()
+    allowed_intervals = {value for value, _label in INTERVAL_CHOICES}
+    if interval not in allowed_intervals:
+        return HttpResponseBadRequest('Invalid sync interval.')
+
+    cancel_scheduled_sync_jobs(Job)
 
     if interval > 0:
         Proxmox2NetBoxSyncJob.enqueue(

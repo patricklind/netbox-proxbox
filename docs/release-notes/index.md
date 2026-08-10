@@ -1,5 +1,27 @@
 # Release Notes
 
+## v1.2.12
+
+### Reliability — bounded sync jobs
+
+Proxmox API requests now use a 30-second timeout so an unreachable endpoint
+cannot occupy a NetBox RQ worker indefinitely. Disabling a recurring schedule
+also clears recurrence from a running job while cancelling work that has not
+started.
+
+### Security — sync actions and credentials
+
+Manual synchronization uses CSRF-protected POST requests. Endpoint edit forms
+no longer render stored passwords or token secrets, and journal API operations
+are limited to valid Proxmox2NetBox sync processes.
+
+### CI/CD
+
+GitHub workflows now use the Node.js 24-based releases of `actions/checkout`
+and `actions/setup-python`.
+
+---
+
 ## v1.2.10
 
 ### Added — Per-endpoint sync controls

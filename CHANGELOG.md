@@ -4,6 +4,31 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.2.12] - 2026-08-10
+
+### Security
+
+- Manual synchronization actions now require CSRF-protected `POST` requests.
+- Endpoint edit forms no longer render stored passwords or API token secrets.
+- Journal entry API access is restricted to valid Proxmox2NetBox sync processes.
+
+### Fixed
+
+- Proxmox API requests now time out after 30 seconds instead of occupying a
+  NetBox RQ worker indefinitely when an endpoint is unresponsive.
+- Recurring sync schedules can be disabled without deleting an executing job.
+- Invalid recurring schedule intervals are rejected before queue state changes.
+
+### CI/CD
+
+- Updated `actions/checkout` and `actions/setup-python` to Node.js 24-based
+  releases.
+
+### Tests
+
+- Added regression coverage for recurring-job cancellation and Proxmox request
+  timeout propagation.
+
 ## [1.2.10] - 2026-04-20
 
 ### Added

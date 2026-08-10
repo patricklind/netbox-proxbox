@@ -77,7 +77,10 @@ class JournalEntryViewSet(NetBoxModelViewSet):
             "comments": "Sync process started"
         }
     """
-    queryset = JournalEntry.objects.all()
+    queryset = JournalEntry.objects.filter(
+        assigned_object_type__app_label='proxmox2netbox',
+        assigned_object_type__model='syncprocess',
+    )
     serializer_class = JournalEntrySerializer
     
     def get_queryset(self):
