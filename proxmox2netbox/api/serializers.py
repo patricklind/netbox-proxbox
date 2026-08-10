@@ -130,8 +130,8 @@ class JournalEntrySerializer(NetBoxModelSerializer):
     
     Attributes:
         url: HyperlinkedIdentityField for the object's detail view
-        object_type: ContentTypeField for the associated object type
-        object_id: IntegerField for the associated object ID
+        assigned_object_type: ContentTypeField for the associated object type
+        assigned_object_id: IntegerField for the associated object ID
         kind: ChoiceField for the entry type (info, success, warning, error)
         comments: CharField for the entry content
         tags: TagSerializer for associated tags
@@ -140,8 +140,8 @@ class JournalEntrySerializer(NetBoxModelSerializer):
         - id: Unique identifier
         - url: API endpoint URL
         - display: Human-readable display string
-        - object_type: Type of associated object
-        - object_id: ID of associated object
+        - assigned_object_type: Type of associated object
+        - assigned_object_id: ID of associated object
         - kind: Entry type
         - comments: Entry content
         - tags: Associated tags
@@ -153,8 +153,8 @@ class JournalEntrySerializer(NetBoxModelSerializer):
             "id": 1,
             "url": "/api/plugins/proxmox2netbox/journal-entries/1/",
             "display": "Info: Sync process started",
-            "object_type": "proxmox2netbox.syncprocess",
-            "object_id": 1,
+            "assigned_object_type": "proxmox2netbox.syncprocess",
+            "assigned_object_id": 1,
             "kind": "info",
             "comments": "Sync process started",
             "tags": [],
@@ -165,11 +165,14 @@ class JournalEntrySerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='plugins-api:proxmox2netbox-api:journalentry-detail',
     )
-    object_type = ContentTypeField(
-        queryset=ContentType.objects.all(),
+    assigned_object_type = ContentTypeField(
+        queryset=ContentType.objects.filter(
+            app_label='proxmox2netbox',
+            model='syncprocess',
+        ),
         required=True,
     )
-    object_id = serializers.IntegerField(required=True)
+    assigned_object_id = serializers.IntegerField(required=True)
     kind = serializers.ChoiceField(choices=JournalEntryKindChoices)
     comments = serializers.CharField()
     tags = TagSerializer(many=True, required=False, nested=True)
@@ -177,6 +180,23 @@ class JournalEntrySerializer(NetBoxModelSerializer):
     class Meta:
         model = JournalEntry
         fields = (
-            'id', 'url', 'display', 'object_type', 'object_id', 'kind', 'comments',
+            'id', 'url', 'display', 'assigned_object_type', 'assigned_object_id',
+            'kind', 'comments',
             'tags', 'created', 'last_updated',
         )
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        object_type = attrs.get('assigned_object_type')
+        object_id = attrs.get('assigned_object_id')
+        if object_type is not None and (
+            object_type.app_label != 'proxmox2netbox' or object_type.model != 'syncprocess'
+        ):
+            raise serializers.ValidationError({
+                'assigned_object_type': 'Journal entries must belong to a sync process.'
+            })
+        if object_id is not None and not SyncProcess.objects.filter(pk=object_id).exists():
+            raise serializers.ValidationError({
+                'assigned_object_id': 'The specified sync process does not exist.'
+            })
+        return attrs
