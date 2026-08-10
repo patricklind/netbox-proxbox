@@ -16,7 +16,8 @@
             {% if can_sync %}
             <div class="d-flex justify-content-center gap-2 flex-wrap">
                 <button class="btn btn-outline-primary sync-btn"
-                    hx-get="{% url 'plugins:proxmox2netbox:sync_devices' %}"
+                    hx-post="{% url 'plugins:proxmox2netbox:sync_devices' %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                     hx-target="#sync-result"
                     hx-swap="innerHTML"
                     hx-disabled-elt=".sync-btn"
@@ -24,7 +25,8 @@
                     <i class="mdi mdi-server"></i> Sync Nodes
                 </button>
                 <button class="btn btn-outline-primary sync-btn"
-                    hx-get="{% url 'plugins:proxmox2netbox:sync_virtual_machines' %}"
+                    hx-post="{% url 'plugins:proxmox2netbox:sync_virtual_machines' %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                     hx-target="#sync-result"
                     hx-swap="innerHTML"
                     hx-disabled-elt=".sync-btn"
@@ -32,7 +34,8 @@
                     <i class="mdi mdi-monitor"></i> Sync Virtual Machines
                 </button>
                 <button class="btn btn-primary sync-btn"
-                    hx-get="{% url 'plugins:proxmox2netbox:sync_full_update' %}"
+                    hx-post="{% url 'plugins:proxmox2netbox:sync_full_update' %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                     hx-target="#sync-result"
                     hx-swap="innerHTML"
                     hx-disabled-elt=".sync-btn"
