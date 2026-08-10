@@ -11,6 +11,7 @@ from proxmox2netbox.services.proxmox_sync import (
     sync_full_update as sync_full_update_service,
     sync_virtual_machines as sync_virtual_machines_service,
 )
+from proxmox2netbox.jobs import SCHEDULE_JOB_NAME, cancel_scheduled_sync_jobs
 
 
 class HtmxHttpRequest(HttpRequest):
@@ -67,8 +68,6 @@ def sync_full_update(request: HtmxHttpRequest) -> HttpResponse:
     )
 
 
-SCHEDULE_JOB_NAME = 'Proxmox2NetBox Sync'
-
 INTERVAL_CHOICES = [
     (0, 'Disabled'),
     (60, 'Every 1 hour'),
@@ -115,12 +114,7 @@ def set_sync_schedule(request: HtmxHttpRequest) -> HttpResponse:
     if interval not in allowed_intervals:
         return HttpResponseBadRequest('Invalid sync interval.')
 
-    # Cancel existing scheduled jobs
-    Job.objects.filter(
-        name=SCHEDULE_JOB_NAME,
-        interval__isnull=False,
-        status__in=('pending', 'scheduled', 'running'),
-    ).delete()
+    cancel_scheduled_sync_jobs(Job)
 
     if interval > 0:
         Proxmox2NetBoxSyncJob.enqueue(
