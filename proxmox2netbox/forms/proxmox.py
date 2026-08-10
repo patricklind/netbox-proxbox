@@ -62,6 +62,14 @@ class ProxmoxEndpointForm(NetBoxModelForm):
             # In that case, validated field values are already in self.cleaned_data.
             cleaned_data = getattr(self, 'cleaned_data', {}) or {}
 
+        # Secret widgets deliberately render empty on edits.  Treat an empty
+        # submitted secret as "unchanged" so editing unrelated endpoint fields
+        # neither exposes nor accidentally erases stored credentials.
+        if self.instance.pk:
+            for field_name in ('password', 'token_value'):
+                if not (cleaned_data.get(field_name) or '').strip():
+                    cleaned_data[field_name] = getattr(self.instance, field_name)
+
         password = (cleaned_data.get('password') or '').strip()
         token_name = (cleaned_data.get('token_name') or '').strip()
         token_value = (cleaned_data.get('token_value') or '').strip()
@@ -91,8 +99,8 @@ class ProxmoxEndpointForm(NetBoxModelForm):
             'tags',
         )
         widgets = {
-            'password': PasswordInput(render_value=True),
-            'token_value': PasswordInput(render_value=True),
+            'password': PasswordInput(render_value=False),
+            'token_value': PasswordInput(render_value=False),
         }
 
 
