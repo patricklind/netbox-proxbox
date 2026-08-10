@@ -253,3 +253,36 @@ def test_run_sync_filters_disabled_endpoints(monkeypatch):
     assert disabled_endpoint.name not in seen
     assert result["created_vms"] == 1
     assert result["endpoints"] == 1
+
+
+def test_connect_endpoint_applies_request_timeout(monkeypatch):
+    calls = []
+
+    class _Version:
+        @staticmethod
+        def get():
+            return {"version": "8.2"}
+
+    class _Client:
+        version = _Version()
+
+    def _client_factory(host, **kwargs):
+        calls.append((host, kwargs))
+        return _Client()
+
+    endpoint = types.SimpleNamespace(
+        domain="pve.example.test",
+        ip_address=None,
+        token_name="sync",
+        token_value="secret",
+        password="",
+        username="sync@pve",
+        port=8006,
+        verify_ssl=True,
+    )
+    monkeypatch.setattr(_sync_mod, "ProxmoxAPI", _client_factory)
+
+    session = _sync_mod.connect_endpoint(endpoint)
+
+    assert session.host == "pve.example.test"
+    assert calls[0][1]["timeout"] == _sync_mod.PROXMOX_REQUEST_TIMEOUT

@@ -27,5 +27,7 @@ Proxmox2NetBoxSyncJob.enqueue(sync_type=SyncTypeChoices.VIRTUAL_MACHINES)
 
 - The job class is an orchestrator only — all sync mapping and upsert logic lives in `services/proxmox_sync.py`.
 - Jobs run in NetBox RQ workers (`netbox-rq` service).
+- Proxmox API requests have a 30-second timeout so an unreachable endpoint
+  cannot occupy an RQ worker indefinitely.
 - Job results are visible in `Admin → Jobs` in the NetBox UI.
 - If an RQ worker is restarted, make sure it picks up the latest installed package version.

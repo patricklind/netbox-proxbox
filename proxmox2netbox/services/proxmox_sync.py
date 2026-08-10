@@ -28,6 +28,7 @@ from proxmox2netbox.services._parse import (
 logger = logging.getLogger(__name__)
 
 MANAGED_TAG_SLUG = 'proxmox2netbox'
+PROXMOX_REQUEST_TIMEOUT = 30
 LEGACY_MANAGED_TAG_SLUGS = (
     'proxbox',
     'proxmox2netbox',
@@ -109,6 +110,7 @@ def connect_endpoint(endpoint):
                     user=endpoint.username,
                     port=endpoint.port,
                     verify_ssl=endpoint.verify_ssl,
+                    timeout=PROXMOX_REQUEST_TIMEOUT,
                     **auth_kwargs,
                 )
                 version = client.version.get()
